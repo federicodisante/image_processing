@@ -5,7 +5,9 @@ Created on 25 mai 2012
 '''
 import sys
 
-import cv
+import cv2
+
+cv = cv2
 
 # ---- Useful functions ----
 
@@ -20,10 +22,10 @@ def init_video(video_file):
     if fps != 0:
         waitPerFrameInMillisec = int( 1/fps * 1000/1 )
 
-        print 'Num. Frames = ', nFrames
-        print 'Frame Rate = ', fps, ' frames per sec'
+        print ('Num. Frames = ', nFrames)
+        print ('Frame Rate = ', fps, ' frames per sec')
 
-        print '----'
+        print ('----')
         
         return capture
     else:
@@ -33,9 +35,9 @@ def display_img(img, delay=1000):
     """
     One liner that displays the given image on screen
     """
-    cv.NamedWindow("Vid", cv.CV_WINDOW_AUTOSIZE)
-    cv.ShowImage("Vid", img)
-    cv.WaitKey(delay)
+    cv.namedWindow("Vid", cv.WINDOW_AUTOSIZE)
+    cv.imshow("Vid", img)
+    cv.waitKey(delay)
 
 def display_video(my_video, frame_inc=100, delay=100):
     """
@@ -86,7 +88,7 @@ def grab_images(video_file, frame_inc=100, delay = 100):
             cv.ShowImage("Vid", img)
             out_name = "data/output/" + str(cpt) + ".jpg"
             cv.SaveImage(out_name, img)
-            print out_name, str(nFrames)
+            print (out_name, str(nFrames))
             cv.WaitKey(delay)
     else: 
         return None
@@ -96,9 +98,10 @@ def to_gray(img):
     Converts the input in grey levels
     Returns a one channel image
     """
-    grey_img = cv.CreateImage(cv.GetSize(img), img.depth, 1)
-    cv.CvtColor(img, grey_img, cv.CV_RGB2GRAY )
-    
+    #grey_img = cv.CreateImage(cv.GetSize(img), img.depth, 1)
+    #cv.CvtColor(img, grey_img, cv.CV_RGB2GRAY )
+    grey_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
     return grey_img   
     
 def grey_histogram(img, nBins=64):
@@ -123,8 +126,8 @@ def extract_bright(grey_img, histogram=False):
     """
     ## Searches for image maximum (brightest pixel)
     # We expect the LEDs to be brighter than the rest of the image
-    [minVal, maxVal, minLoc, maxLoc] = cv.MinMaxLoc(grey_img)
-    print "Brightest pixel val is %d" %(maxVal)
+    [minVal, maxVal, minLoc, maxLoc] = cv.minMaxLoc(grey_img)
+    print ("Brightest pixel val is %d" %(maxVal))
     
     #We retrieve only the brightest part of the image
     # Here is use a fixed margin (80%), but you can use hist to enhance this one    
@@ -139,10 +142,11 @@ def extract_bright(grey_img, histogram=False):
         margin = 0.8
         
     thresh = int( maxVal * margin) # in pix value to be extracted
-    print "Threshold is defined as %d" %(thresh)
+    print ("Threshold is defined as %d" %(thresh))
 
-    thresh_img = cv.CreateImage(cv.GetSize(img), img.depth, 1)
-    cv.Threshold(grey_img, thresh_img , thresh, 255, cv.CV_THRESH_BINARY)
+    #thresh_img = cv.CreateImage(cv.GetSize(img), img.depth, 1)
+    #cv.Threshold(grey_img, thresh_img , thresh, 255, cv.CV_THRESH_BINARY)
+    reval, thresh_img = cv.threshold(grey_img, thresh, 255, cv.THRESH_BINARY)
     
     return thresh_img
 
@@ -151,15 +155,26 @@ def find_leds(thresh_img):
     Given a binary image showing the brightest pixels in an image, 
     returns a result image, displaying found leds in a rectangle
     """
-    contours = cv.FindContours(thresh_img, 
-                               cv.CreateMemStorage(), 
-                               mode=cv.CV_RETR_EXTERNAL , 
-                               method=cv.CV_CHAIN_APPROX_NONE , 
+    
+    contours, hierarchy = cv.findContours(thresh_img,
+                               mode=cv.RETR_EXTERNAL, 
+                               method=cv.CHAIN_APPROX_NONE, 
                                offset=(0, 0))
-
+    #print(contours)
+    #print(len(contours))
+    
+    out_img = thresh_img
+    
     regions = []
+    for cnt in contours:
+        x,y,w,h = cv.boundingRect(cnt)
+        out_img = cv.rectangle(thresh_img,(x,y),(x+w,y+h),(0,255,0),2)
+        regions.append((x,y,w,h))
+        
+    '''    
     while contours:
         pts = [ pt for pt in contours ]
+        print(pts)
         x, y = zip(*pts)    
         min_x, min_y = min(x), min(y)
         width, height = max(x) - min_x + 1, max(y) - min_y + 1
@@ -172,7 +187,8 @@ def find_leds(thresh_img):
         pt2 = x+width,y+height
         color = (0,0,255,0)
         cv.Rectangle(out_img, pt1, pt2, color, 2)
-
+    '''
+    
     return out_img, regions
 
 def leds_positions(regions):
@@ -194,12 +210,13 @@ if __name__ == '__main__':
         grab_images(video_file, frame_inc=100, delay = 100)
         
 
-    img = cv.LoadImage("data/output/600.jpg")
-    if img != None:
+    img = cv.imread("data/output/600.jpg")
+    #if img != None:
+    if True:
         # Displays the image I ll be working with
         display_img(img, delay = 100)
     else:
-        print "IMG not found !"
+        print ("IMG not found !")
         sys.exit(0)
 
     ####
@@ -210,6 +227,7 @@ if __name__ == '__main__':
     display_img(grey_img, 1000) 
     # Detect brightest point in image :
     thresh_img = extract_bright(grey_img)
+    print(thresh_img)
     display_img(thresh_img, delay = 1000)
 
     # We want to extract the elements left, and count their number
@@ -218,10 +236,10 @@ if __name__ == '__main__':
 
     centers = leds_positions(regions)
 
-    print "Total number of Leds found : %d !" %(len(centers))
-    print "###"
-    print "Led positions :"
+    print ("Total number of Leds found : %d !" %(len(centers)))
+    print ("###")
+    print ("Led positions :")
     for c in centers:
-        print "x : %d; y : %d" %(c[0], c[1])
-    print "###"
+        print ("x : %d; y : %d" %(c[0], c[1]))
+    print ("###")
     
