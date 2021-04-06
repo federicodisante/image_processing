@@ -210,7 +210,8 @@ if __name__ == '__main__':
         grab_images(video_file, frame_inc=100, delay = 100)
         
 
-    img = cv.imread("data/output/600.jpg")
+    #img = cv.imread("data/output/20170424_145252_640x360.jpg")
+    img = cv.imread("data/output/20210404_114150_640x480.jpg")
     #if img != None:
     if True:
         # Displays the image I ll be working with
