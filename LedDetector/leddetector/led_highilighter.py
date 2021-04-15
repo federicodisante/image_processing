@@ -37,7 +37,8 @@ def display_img(img, delay=1000):
     """
     cv.namedWindow("Vid", cv.WINDOW_AUTOSIZE)
     cv.imshow("Vid", img)
-    cv.waitKey(delay)
+    if delay > 0:
+        cv.waitKey(delay)
 
 def display_video(my_video, frame_inc=100, delay=100):
     """
@@ -168,7 +169,8 @@ def find_leds(thresh_img):
     regions = []
     for cnt in contours:
         x,y,w,h = cv.boundingRect(cnt)
-        out_img = cv.rectangle(thresh_img,(x,y),(x+w,y+h),(0,255,0),2)
+        colored_img = cv.cvtColor(thresh_img, cv.COLOR_GRAY2BGR)
+        out_img = cv.rectangle(colored_img,(x,y),(x+w,y+h),(0,0,255),4)
         regions.append((x,y,w,h))
         
     '''    
